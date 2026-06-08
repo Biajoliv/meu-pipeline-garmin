@@ -61,6 +61,53 @@ def formatar_pace(velocidade_ms):
     segundos = int((pace_decimal - minutos) * 60)
     return f"{minutos}:{segundos:02d}"
 
+def calcular_sono_total(dto):
+    total = dto.get("sleepTimeInSeconds")
+    if total:
+        return total
+    return (
+        (dto.get("deepSleepSeconds") or 0) +
+        (dto.get("remSleepSeconds") or 0) +
+        (dto.get("lightSleepSeconds") or 0)
+    )
+
+def verificar_alertas(stats, dto):
+    alertas = []
+
+    # FC em repouso: alerta se > 10% acima da sua média dos últimos 7 dias
+    fc_hoje = stats.get("restingHeartRate") or 0
+    fc_media_7d = stats.get("lastSevenDaysAvgRestingHeartRate") or 0
+    if fc_hoje and fc_media_7d and fc_hoje > fc_media_7d * 1.10:
+        alertas.append(f"❤️ FC em repouso elevada: {fc_hoje} bpm (sua média: {fc_media_7d} bpm)")
+
+    # Stress alto
+    stress = stats.get("averageStressLevel") or 0
+    if stress > 65:
+        alertas.append(f"🧠 Stress alto: {stress}/100")
+
+    # Body Battery baixo ao acordar
+    bb = stats.get("bodyBatteryAtWakeTime")
+    if bb is not None and bb < 40:
+        alertas.append(f"⚡ Body Battery baixo ao acordar: {bb}")
+
+    if dto:
+        # Sono insuficiente (< 6h)
+        total_sono = calcular_sono_total(dto)
+        if total_sono and total_sono < 21600:
+            alertas.append(f"😴 Sono insuficiente: {formatar_tempo(total_sono)} (meta: 6h+)")
+
+        # Sono profundo muito baixo (< 45 min)
+        profundo = dto.get("deepSleepSeconds") or 0
+        if profundo and profundo < 2700:
+            alertas.append(f"💎 Sono profundo baixo: {formatar_tempo(profundo)}")
+
+    # SpO2 baixo
+    spo2 = stats.get("lowestSpo2")
+    if spo2 and spo2 < 95:
+        alertas.append(f"🫁 SpO2 mínimo baixo: {spo2}%")
+
+    return alertas
+
 # 4. Processar se houve corrida ontem
 texto_corrida = ""
 for act in atividades:
@@ -95,18 +142,25 @@ if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
     calorias_totais = calorias_bren + calorias_ativas
     
     sono_total, sono_profundo, sono_leve, sono_rem = "0h 00m", "0h 00m", "0h 00m", "0h 00m"
+    dto = None
     if sono:
         dto = sono.get("dailySleepDTO", {}) or sono
-        sono_total = formatar_tempo(dto.get("sleepTimeInSeconds", 0))
+        sono_total = formatar_tempo(calcular_sono_total(dto))
         sono_profundo = formatar_tempo(dto.get("deepSleepSeconds", 0))
         sono_leve = formatar_tempo(dto.get("lightSleepSeconds", 0))
         sono_rem = formatar_tempo(dto.get("remSleepSeconds", 0))
+
+    alertas = verificar_alertas(stats, dto)
+    if alertas:
+        texto_alertas = "⚠️ *ALERTAS DO DIA:*\n" + "\n".join(f"• {a}" for a in alertas) + "\n\n"
+    else:
+        texto_alertas = "✅ *Todos os indicadores normais*\n\n"
 
     # Junta o resumo geral com o bloco de corrida (se houver)
     mensagem = (
         f"📊 *RELATÓRIO DIÁRIO GARMIN*\n"
         f"📅 Data: {ontem}\n\n"
-        f"{texto_corrida}"  # Inserirá os dados da corrida aqui no topo se você tiver corrido!
+        f"{texto_corrida}"
         f"📋 *RESUMO GERAL DO DIA:*\n"
         f"🚶‍♂️ *Passos:* {passos:,}\n"
         f"🔥 *Calorias Ativas:* {calorias_ativas} kcal\n"
@@ -115,6 +169,7 @@ if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
         f"💤  └ 💎 *Profundo:* {sono_profundo}\n"
         f"💤  └ ☁️ *Leve:* {sono_leve}\n"
         f"💤  └ 🧠 *REM:* {sono_rem}\n\n"
+        f"{texto_alertas}"
         f"💪 _Continue focado nos treinos!_"
     )
     

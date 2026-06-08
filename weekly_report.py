@@ -29,6 +29,17 @@ def formatar_pace(velocidade_ms):
     return f"{minutos}:{segundos:02d}"
 
 
+def calcular_sono_total(dto):
+    total = dto.get("sleepTimeInSeconds")
+    if total:
+        return total
+    return (
+        (dto.get("deepSleepSeconds") or 0) +
+        (dto.get("remSleepSeconds") or 0) +
+        (dto.get("lightSleepSeconds") or 0)
+    )
+
+
 # Acumula os dados de cada dia
 registros = []
 for dia in dias:
@@ -71,7 +82,7 @@ for r in registros:
     sono_registros.append(dto)
 
 if sono_registros:
-    sono_total_media = media([d.get("sleepTimeInSeconds", 0) for d in sono_registros])
+    sono_total_media = media([calcular_sono_total(d) for d in sono_registros])
     sono_profundo_media = media([d.get("deepSleepSeconds", 0) for d in sono_registros])
     sono_rem_media = media([d.get("remSleepSeconds", 0) for d in sono_registros])
 
@@ -107,6 +118,24 @@ else:
 data_inicio = str(min(dias))
 data_fim = str(max(dias))
 
+# Baseline de FC: média dos 7 dias do registro mais recente
+fc_baseline = registros[0]["resumo"].get("lastSevenDaysAvgRestingHeartRate") or fc_repouso_media
+
+alertas = []
+if fc_repouso_media and fc_repouso_media > fc_baseline * 1.10:
+    alertas.append(f"❤️ FC em repouso média elevada: {int(fc_repouso_media)} bpm (baseline: {int(fc_baseline)} bpm)")
+if stress_media and stress_media > 65:
+    alertas.append(f"🧠 Semana com stress alto: média {int(stress_media)}/100")
+if sono_total_media and sono_total_media < 21600:
+    alertas.append(f"😴 Sono médio insuficiente: {formatar_tempo(sono_total_media)} (meta: 6h+)")
+if not corridas:
+    alertas.append("🏃‍♂️ Nenhuma corrida registrada na semana")
+
+if alertas:
+    texto_alertas = "⚠️ *ALERTAS DA SEMANA:*\n" + "\n".join(f"• {a}" for a in alertas) + "\n\n"
+else:
+    texto_alertas = "✅ *Todos os indicadores normais na semana*\n\n"
+
 mensagem = (
     f"📊 *RELATÓRIO SEMANAL GARMIN*\n"
     f"📅 {data_inicio} → {data_fim} ({n} dias com dados)\n\n"
@@ -121,6 +150,7 @@ mensagem = (
     f"❤️ *FC em repouso:* {int(fc_repouso_media)} bpm\n"
     f"🧠 *Stress médio:* {int(stress_media)}/100\n"
     f"⚡ *Body Battery máx. médio:* {int(body_battery_media)}\n\n"
+    f"{texto_alertas}"
     f"💪 _Semana analisada. Continue evoluindo!_"
 )
 
