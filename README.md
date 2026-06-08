@@ -1,15 +1,20 @@
 # Garmin Connect Pipeline
 
-Pipeline automático que busca dados diários do Garmin Connect e envia um relatório pelo Telegram.
+Pipeline automático que busca dados do Garmin Connect e envia relatórios pelo Telegram.
 
-## O que faz
+## Relatórios
 
-Todo dia às 03:00 UTC (meia-noite no horário de Brasília) o GitHub Actions executa o `main.py`, que:
+### Diário — `main.py`
+Executa todo dia às 03:00 UTC (meia-noite BRT) e envia um resumo do dia anterior:
+- Passos, calorias ativas e totais
+- Sono (total, profundo, REM)
+- Detalhes da corrida, se houver (distância, tempo, pace, FC)
 
-1. Faz login no Garmin Connect
-2. Busca estatísticas do dia anterior (passos, calorias, sono, corridas)
-3. Salva os dados brutos em `dados/garmin_YYYY-MM-DD.json`
-4. Envia um resumo formatado via Telegram
+### Semanal — `weekly_report.py`
+Executa toda segunda-feira às 10:00 UTC (07:00 BRT) com as médias dos últimos 7 dias:
+- Médias de passos, calorias e sono
+- FC em repouso, stress e Body Battery
+- Resumo das corridas da semana (quantidade, distância total, pace médio)
 
 ## Secrets necessários no GitHub
 
@@ -24,15 +29,18 @@ Configure em **Settings → Secrets and variables → Actions**:
 
 ## Como disparar manualmente
 
-No GitHub: **Actions → Garmin Data Pipeline → Run workflow**
+- Diário: **Actions → Garmin Data Pipeline → Run workflow**
+- Semanal: **Actions → Garmin Weekly Report → Run workflow**
 
 ## Estrutura
 
 ```
-main.py           # Script principal
-requirements.txt  # Dependências Python
-dados/            # JSONs com os dados históricos
+main.py              # Relatório diário
+weekly_report.py     # Relatório semanal
+requirements.txt     # Dependências Python
+dados/               # JSONs com os dados históricos
 .github/
   workflows/
-    garmin_pipeline.yml  # Definição do workflow
+    garmin_pipeline.yml   # Workflow diário
+    weekly_report.yml     # Workflow semanal
 ```
