@@ -54,7 +54,7 @@ def formatar_tempo_corrida(segundos):
 
 def formatar_pace(velocidade_ms):
     # O Garmin retorna velocidade em metros por segundo. Convertemos para min/km (Pace)
-    if not speed_ms or velocidade_ms <= 0:
+    if not velocidade_ms or velocidade_ms <= 0:
         return "--:--"
     pace_decimal = 16.666666667 / velocidade_ms
     minutos = int(pace_decimal)
@@ -118,7 +118,7 @@ if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
         f"💪 _Continue focado nos treinos!_"
     )
     
-    url_telegram = f"https://api.telegram.com/bot{TELEGRAM_TOKEN}/sendMessage"
+    url_telegram = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": mensagem, "parse_mode": "Markdown"}
     
     try:
