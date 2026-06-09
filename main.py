@@ -266,7 +266,9 @@ for act in atividades:
         distancia_km = round(act.get("distance", 0) / 1000, 2)
         duracao = formatar_tempo_corrida(act.get("duration", 0))
         pace_medio = formatar_pace(act.get("averageSpeed", 0))
+        pace_min = formatar_pace(act.get("maxSpeed", 0))  # maior velocidade = pace mais rápido
         bpm_medio = int(act.get("averageHR", 0)) if act.get("averageHR") else "N/A"
+        bpm_max = int(act.get("maxHR", 0)) if act.get("maxHR") else "N/A"
         calorias_treino = int(act.get("calories", 0))
         te_aerobico = act.get("aerobicTrainingEffect") or 0
         label_te = label_training_effect(te_aerobico)
@@ -274,8 +276,10 @@ for act in atividades:
         texto_corrida += (
             f"🏃 *TREINO DE CORRIDA*\n"
             f"🏅 {nome_treino}\n"
-            f"📏 {distancia_km} km  |  ⏱️ {duracao}  |  {pace_medio} /km\n"
-            f"💓 FC: {bpm_medio} bpm  |  🔥 {calorias_treino} kcal\n"
+            f"📏 {distancia_km} km  |  ⏱️ {duracao}\n"
+            f"⏱️ Pace: {pace_medio} méd  /  {pace_min} mín /km\n"
+            f"💓 FC: {bpm_medio} méd  /  {bpm_max} máx bpm\n"
+            f"🔥 Calorias: {calorias_treino} kcal\n"
             f"⚡ Efeito aeróbico: {te_aerobico:.1f} — {label_te}\n\n"
         )
 
