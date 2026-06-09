@@ -36,4 +36,5 @@ jobs:
         git config --global user.email "bot@garminpipeline.com"
         git add dados/*.json || true
         git commit -m "Atualização automática de dados: $(date +'%Y-%m-%d')" || exit 0
+        git pull --rebase origin main
         git push
